@@ -31,13 +31,11 @@ def main():
     plu_homepage: str =  plu_base_url + "index/index/index.html"
     telegram_url: str = 'https://web.telegram.org/a/#-1001640574914'
 
-    coin: str = 'bnb'.lower()
-    action: str = 'CALL'.upper()
-    actionbtn_xpath: str = f"//span[text()='{action}']"
+    sticky_date_xpath: str = '//div[@class="sticky-date interactive"]'
     driverpath: str = "assets\drivers\chromedriver.exe"
     durationbtn_xpath: str = '//div[@id="time_1"]//span[text()="60 S"]'
-    coin_link: str = f'https://pluapp.net/index/trade/trans.html?sytx={coin}'
     selectd_duration_xpath: str = '//div[@class="dong_order_option_list fontchangecolor fontchangecolor_1 bgf5465cim"]'
+    msgs_xpath: str = '//div[@class="text-content clearfix with-meta"]'
 
     
     gmtTime: str = lambda tz: datetime.now(
@@ -59,6 +57,25 @@ def main():
     wait = WebDriverWait(bot, 30)
     wait5secs = WebDriverWait(bot, 5)
 
+
+    def getSignal():
+        bot.get(telegram_url); sleep(5)
+        # sticky_dates = wait.until(EC.visibility_of_all_elements_located((By.XPATH, sticky_date_xpath)))  # NOT USED
+        msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
+        # sticky_dates = bot.find_elements(By.XPATH, sticky_date_xpath)
+        msg = msgs[-2].text
+        signal: dict = {}
+
+        signal_atrr: list  = ['coin', 'action']
+        counter: int = 0
+        for i in msg.split("\n"): 
+            if any(["Trading products:" in i, "Transaction instruction:" in i]):
+                signal[signal_atrr[counter]] = i.split("【")[-1].split("】")[0]
+                counter += 1
+        
+        print("Signal gotten 👍")
+        return signal
+
     def trade():
         
         bot.get(plu_login_page)
@@ -70,7 +87,7 @@ def main():
             wait.until(EC.url_to_be(plu_homepage))
 
         assert bot.current_url in plu_homepage
-        print("Logged in.")
+        print("Logged in successfully into PLU. 😁")
 
         bot.get(coin_link)
 
@@ -92,6 +109,13 @@ def main():
 
     
         input("Press the enter key: ")
+
+    signal: dict = getSignal()
+
+    coin: str = signal['coin'].lower()
+    action: str = signal['action'].upper()
+    actionbtn_xpath: str = f"//span[text()='{action}']"
+    coin_link: str = f'https://pluapp.net/index/trade/trans.html?sytx={coin}'
 
     trade()
 
