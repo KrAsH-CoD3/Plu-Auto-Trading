@@ -25,13 +25,20 @@ def main():
     TOKEN: str =  env_variable.get("TOKEN")  # Token
     USERNAME: str =  env_variable.get("USER")  # Plu Username (Phone number)
     PASSWORD: str =  env_variable.get("PASSWORD")  # Plu Password
+    
+    plu_base_url: str = "https://pluapp.net/"
+    plu_login_page: str = plu_base_url + "index/index/login.html"
+    plu_homepage: str =  plu_base_url + "index/index/index.html"
+    telegram_url: str = 'https://web.telegram.org/a/#-1001640574914'
 
+    coin: str = 'bnb'.lower()
+    action: str = 'CALL'.upper()
+    actionbtn_xpath: str = f"//span[text()='{action}']"
     driverpath: str = "assets\drivers\chromedriver.exe"
+    durationbtn_xpath: str = '//div[@id="time_1"]//span[text()="60 S"]'
+    coin_link: str = f'https://pluapp.net/index/trade/trans.html?sytx={coin}'
+    selectd_duration_xpath: str = '//div[@class="dong_order_option_list fontchangecolor fontchangecolor_1 bgf5465cim"]'
 
-    base_url: str = "https://pluapp.net/"
-
-    login_page: str = base_url + "index/index/login.html"
-    homepage: str =  base_url + "index/index/index"
     
     gmtTime: str = lambda tz: datetime.now(
         pytz.timezone(tz)).strftime("%H : %M : %S")
@@ -49,17 +56,44 @@ def main():
         "excludeSwitches", ["enable-automation", 'enable-logging'])
     options.add_argument('--disable-blink-features=AutomationControlled')
     bot = webdriver.Chrome(service=service, options=options)
+    wait = WebDriverWait(bot, 30)
+    wait5secs = WebDriverWait(bot, 5)
 
-    bot.get(login_page)
-    if bot.current_url == homepage:
+    def trade():
+        
+        bot.get(plu_login_page)
+
+        if bot.current_url not in plu_homepage: 
+            bot.find_element(By.XPATH, '//input[@class="pml"]').send_keys(USERNAME)
+            bot.find_element(By.XPATH, '//input[@id="lpwd"]').send_keys(PASSWORD)
+            bot.find_element(By.XPATH, '//input[@name="submit"]').click()
+            wait.until(EC.url_to_be(plu_homepage))
+
+        assert bot.current_url in plu_homepage
         print("Logged in.")
-    else:  # Loggin in
-        bot.find_element(By.XPATH, '//input[@class="pml"]').send_keys(USERNAME)
-        bot.find_element(By.XPATH, '//input[@id="lpwd"]').send_keys(PASSWORD)
-        bot.find_element(By.XPATH, '//input[@name="submit"]').click()
 
+        bot.get(coin_link)
 
-    input()
+        for idx in range(4):
+            try:
+                wait5secs.until(EC.element_to_be_clickable((By.XPATH, actionbtn_xpath)))
+                break
+            except TimeoutException: 
+                if idx >= 2: bot.get(coin_link)
+        
+        bot.find_element(By.XPATH, actionbtn_xpath).click()  # Click Action Button
+        wait5secs.until(EC.element_to_be_clickable((By.XPATH, durationbtn_xpath)))
+        bot.find_element(By.XPATH, durationbtn_xpath).click()  # Click Duration Button
+        wait5secs.until(EC.visibility_of_element_located((By.XPATH, selectd_duration_xpath)))
+        try:
+            bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("12000")  # Type amount
+        except: ...
+        # bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
+
+    
+        input("Press the enter key: ")
+
+    trade()
 
 
 if __name__ == "__main__":
