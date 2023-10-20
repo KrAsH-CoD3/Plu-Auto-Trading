@@ -1,2 +1,5 @@
 .env
+assets
 plu_venv
+main.ipynb
+temp.json

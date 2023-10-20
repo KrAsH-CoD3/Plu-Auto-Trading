@@ -1,2 +1,6 @@
+pytz
 selenium
+PyAutoGUI
+ipykernel
 python-dotenv
+python-whatsapp-bot
