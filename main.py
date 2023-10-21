@@ -2,9 +2,9 @@ from datetime import datetime
 from selenium import webdriver
 from dotenv import load_dotenv
 from typing import Optional, Dict
-import contextlib, pyautogui, pytz, json
 from time import sleep, perf_counter
 from os import environ as env_variable
+import contextlib, pyautogui, pytz, json
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -20,7 +20,7 @@ def main():
     
     load_dotenv()
 
-    NUMBER: str = env_variable.get("MY_NUMBER")  # Your WhatsApp Number (234xxxxxxxxxx)
+    MY_NUMBER: str = env_variable.get("MY_NUMBER")  # Your WhatsApp Number (234xxxxxxxxxx)
     NUM_ID: str = env_variable.get("NUM_ID")  # Your Number ID
     TOKEN: str =  env_variable.get("TOKEN")  # Token
     USERNAME: str =  env_variable.get("USER")  # Plu Username (Phone number)
@@ -29,13 +29,16 @@ def main():
     plu_base_url: str = "https://pluapp.net/"
     plu_login_page: str = plu_base_url + "index/index/login.html"
     plu_homepage: str =  plu_base_url + "index/index/index.html"
+    plu_contract_record: str = plu_base_url + "index/contract/record.html"
     telegram_url: str = 'https://web.telegram.org/a/#-1001640574914'
 
+    timezone: str = "Africa/Lagos"  # Your timezone
     sticky_date_xpath: str = '//div[@class="sticky-date interactive"]'
     driverpath: str = "assets\drivers\chromedriver.exe"
     durationbtn_xpath: str = '//div[@id="time_1"]//span[text()="60 S"]'
-    selectd_duration_xpath: str = '//div[@class="dong_order_option_list fontchangecolor fontchangecolor_1 bgf5465cim"]'
+    selected_duration_xpath: str = '//div[@class="dong_order_option_list fontchangecolor fontchangecolor_1 bgf5465cim"]'
     msgs_xpath: str = '//div[@class="text-content clearfix with-meta"]'
+    status_date_xpath: str = '//div[@id="list_box"]//div[@class="listbox_title_r"]//span[@class="fcc"]'
 
     
     gmtTime: str = lambda tz: datetime.now(
@@ -56,14 +59,13 @@ def main():
     bot = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(bot, 30)
     wait5secs = WebDriverWait(bot, 5)
+    wa_bot = Whatsapp(number_id=NUM_ID, token=TOKEN)
 
 
     def getSignal():
         bot.get(telegram_url); sleep(5)
-        # sticky_dates = wait.until(EC.visibility_of_all_elements_located((By.XPATH, sticky_date_xpath)))  # NOT USED
         msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
-        # sticky_dates = bot.find_elements(By.XPATH, sticky_date_xpath)
-        msg = msgs[-2].text
+        msg = msgs[-3].text  # Should be -1 at 8PM
         signal: dict = {}
 
         signal_atrr: list  = ['coin', 'action']
@@ -73,7 +75,7 @@ def main():
                 signal[signal_atrr[counter]] = i.split("【")[-1].split("】")[0]
                 counter += 1
         
-        print("Signal gotten 👍")
+        print("Signal Gotten 👍", signal)
         return signal
 
     def trade():
@@ -101,11 +103,29 @@ def main():
         bot.find_element(By.XPATH, actionbtn_xpath).click()  # Click Action Button
         wait5secs.until(EC.element_to_be_clickable((By.XPATH, durationbtn_xpath)))
         bot.find_element(By.XPATH, durationbtn_xpath).click()  # Click Duration Button
-        wait5secs.until(EC.visibility_of_element_located((By.XPATH, selectd_duration_xpath)))
-        try:
-            bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("12000")  # Type amount
-        except: ...
-        # bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
+        wait5secs.until(EC.visibility_of_element_located((By.XPATH, selected_duration_xpath)))
+        try: bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("Your amount here")  # Type amount
+        except: ... # 
+        finally: 
+            # bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
+            initial_balance = float(bot.find_element(By.XPATH, '//span[@id="balance"]').text)  # Initial balance
+            # while True:
+            #     with contextlib.suppress(TimeoutException, NoSuchElementException):
+            #         wait5secs.until(EC.invisibility_of_element((By.XPATH, selected_duration_xpath)))
+            #         break
+        bot.get(plu_contract_record)
+        numeric_vales = bot.find_elements(By.XPATH, '//span[@class=" f12 fce5"]')  # Numeric values
+        evenStatus_OddDate = bot.find_elements(By.XPATH, status_date_xpath)  # evenStatus_OddDate # First=Status, Second=Date
+        for idx, numeric_value in enumerate(numeric_vales):
+            if idx == 3: print(f'{initial_balance = }, Profit = {float(numeric_value.text)}\nNew Balance = {initial_balance + float(numeric_value.text)}')
+        evenStatus_OddDate_list: list = []
+        for i in evenStatus_OddDate:
+            evenStatus_OddDate_list.append(i.text)
+        
+        # Send to Self //  # Add balance and profit 
+        wa_bot.send_message(MY_NUMBER, f"Auto trade complete at {gmtTime(timezone)}.\n{initial_balance = }, Profit = {float(numeric_value.text)}\nNew Balance = {initial_balance + float(numeric_value.text)}", 
+            reply_markup=Inline_list("Show list",list_items=[List_item("Nice one 👌"), List_item("Thanks ✨"), List_item("Great Job")]))
+        
 
     
         input("Press the enter key: ")
