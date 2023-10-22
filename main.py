@@ -65,6 +65,7 @@ def main():
     def getSignal():
         bot.get(telegram_url); sleep(5)
         msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
+        bot.find_element(By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]').click()
         msg = msgs[-3].text  # Should be -1 at 8PM
         signal: dict = {}
 
@@ -75,7 +76,7 @@ def main():
                 signal[signal_atrr[counter]] = i.split("【")[-1].split("】")[0]
                 counter += 1
         
-        print("Signal Gotten 👍", signal)
+        print("Signal Gotten! 👍", signal)
         return signal
 
     def trade():
@@ -91,7 +92,7 @@ def main():
         assert bot.current_url in plu_homepage
         print("Logged in successfully into PLU. 😁")
 
-        bot.get(coin_link)
+        bot.get(coin_link)  # Goto Trading Page
 
         for idx in range(4):
             try:
@@ -99,20 +100,37 @@ def main():
                 break
             except TimeoutException: 
                 if idx >= 2: bot.get(coin_link)
-        
+
         bot.find_element(By.XPATH, actionbtn_xpath).click()  # Click Action Button
-        wait5secs.until(EC.element_to_be_clickable((By.XPATH, durationbtn_xpath)))
-        bot.find_element(By.XPATH, durationbtn_xpath).click()  # Click Duration Button
-        wait5secs.until(EC.visibility_of_element_located((By.XPATH, selected_duration_xpath)))
-        try: bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("Your amount here")  # Type amount
+
+        # Amount and duration is auto inputted and selected 
+        try: 
+            # REMOVE FROM HERE  # TESTING PURPOSE
+            bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("10")  # Type amount/Your amount here
+            bot.find_element(By.XPATH, '//span[@id="balance"]').click()  # To update expected balance
+            # TO HERE
+            wait5secs.until(EC.element_to_be_clickable((By.XPATH, durationbtn_xpath)))
+            bot.find_element(By.XPATH, durationbtn_xpath).click()  # Click Duration Button
+            wait5secs.until(EC.visibility_of_element_located((By.XPATH, selected_duration_xpath)))
+            # bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("10")  # Type amount/Your amount here
         except: ... # 
         finally: 
-            # bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
-            initial_balance = float(bot.find_element(By.XPATH, '//span[@id="balance"]').text)  # Initial balance
-            # while True:
-            #     with contextlib.suppress(TimeoutException, NoSuchElementException):
-            #         wait5secs.until(EC.invisibility_of_element((By.XPATH, selected_duration_xpath)))
-            #         break
+            initial_balance: float = float(bot.find_element(By.XPATH, '//span[@id="balance"]').text)  # Initial balance
+            bot.find_element(By.XPATH, '//span[@id="balance"]').click()  # To update expected balance
+            bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
+            print("Trading...")
+            for i in range(0, 90, 30): # 90 S Countdown with 30 S steps and WebDriverWait 
+                if i >= 30: 
+                    trading_amount = float(bot.find_element(By.XPATH, '//div[@id="timer_buynum"]').text)
+                    exp_profit = float(bot.find_element(By.XPATH, '//div[@id="expected_profits"]').text)
+                    print(f'{initial_balance= } NGN\n{trading_amount= } NGN\n{exp_profit= } NGN')
+                with contextlib.suppress(TimeoutException):
+                    # Wait for "Check Results" to be visible on the screen after countdown
+                    wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="wait_box_info"]')))
+                    break
+        
+        input(F"DONE FOR NOW!")
+        
         bot.get(plu_contract_record)
         numeric_vales = bot.find_elements(By.XPATH, '//span[@class=" f12 fce5"]')  # Numeric values
         evenStatus_OddDate = bot.find_elements(By.XPATH, status_date_xpath)  # evenStatus_OddDate # First=Status, Second=Date
@@ -130,7 +148,8 @@ def main():
     
         input("Press the enter key: ")
 
-    signal: dict = getSignal()
+    # signal: dict = getSignal()
+    signal: dict = {'coin': 'FIL', 'action': 'PUT'}
 
     coin: str = signal['coin'].lower()
     action: str = signal['action'].upper()
