@@ -65,8 +65,9 @@ def main():
     def getSignal():
         bot.get(telegram_url); sleep(5)
         msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
-        bot.find_element(By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]').click()
-        msg = msgs[-3].text  # Should be -1 at 8PM
+        with contextlib.suppress(Exception):
+            bot.find_element(By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]').click()  # Hidden scoll to bottom (ElementClickInterceptedException)
+        msg = msgs[-2].text  # Should be -1 at 8PM
         signal: dict = {}
 
         signal_atrr: list  = ['coin', 'action']
@@ -119,33 +120,41 @@ def main():
             bot.find_element(By.XPATH, '//span[@id="balance"]').click()  # To update expected balance
             bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
             print("Trading...")
-            for i in range(0, 90, 30): # 90 S Countdown with 30 S steps and WebDriverWait 
-                if i >= 30: 
-                    trading_amount = float(bot.find_element(By.XPATH, '//div[@id="timer_buynum"]').text)
-                    exp_profit = float(bot.find_element(By.XPATH, '//div[@id="expected_profits"]').text)
-                    print(f'{initial_balance= } NGN\n{trading_amount= } NGN\n{exp_profit= } NGN')
-                with contextlib.suppress(TimeoutException):
-                    # Wait for "Check Results" to be visible on the screen after countdown
-                    wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="wait_box_info"]')))
-                    break
+            sleep(3)
+            for i in range(0, 75, 25): # 90 S Countdown with 30 S steps and WebDriverWait 
+                if i >= 25: 
+                  with contextlib.suppress(TimeoutException, ValueError):
+                        # trading_amount = float(bot.find_element(By.XPATH, '//div[@id="timer_buynum"]').text)
+                        # exp_profit = float(bot.find_element(By.XPATH, '//div[@id="expected_profits"]').text)
+                        # print(f'{initial_balance= } NGN\n{trading_amount= } NGN\n{exp_profit= } NGN')
+                        # Wait for "Check Results" to be visible on the screen after countdown
+                        wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="wait_box_info"]')))
+                        break
         
-        input(F"DONE FOR NOW!")
-        
-        bot.get(plu_contract_record)
-        numeric_vales = bot.find_elements(By.XPATH, '//span[@class=" f12 fce5"]')  # Numeric values
-        evenStatus_OddDate = bot.find_elements(By.XPATH, status_date_xpath)  # evenStatus_OddDate # First=Status, Second=Date
+        while True:
+            bot.get(plu_contract_record)
+            numeric_vales = bot.find_elements(By.XPATH, '//span[@class=" f12 fce5"]')  # Numeric values
+            evenStatus_OddDate = bot.find_elements(By.XPATH, status_date_xpath)  # evenStatus_OddDate # First=Status, Second=Date
+            
+            initial_balance = 15144.26
+
+            evenStatus_OddDate_list: list = [i.text for i in evenStatus_OddDate]
+            with contextlib.suppress(AssertionError):
+                status: str = evenStatus_OddDate_list[0]
+                assert status == 'Settled'
+                break
         for idx, numeric_value in enumerate(numeric_vales):
-            if idx == 3: print(f'{initial_balance = }, Profit = {float(numeric_value.text)}\nNew Balance = {initial_balance + float(numeric_value.text)}')
-        evenStatus_OddDate_list: list = []
-        for i in evenStatus_OddDate:
-            evenStatus_OddDate_list.append(i.text)
+            if idx == 3: # Settled
+                profit: float = float(numeric_value.text)
+                loss: float = 0.0
+                break
+        if '-' in str(profit): loss = str(profit).split('-')[1] 
+        print(f"Auto trade initiated at {evenStatus_OddDate_list[1]}\n{initial_balance = } NGN\nStatus = {evenStatus_OddDate_list[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {gmtTime(timezone)}")
         
         # Send to Self //  # Add balance and profit 
-        wa_bot.send_message(MY_NUMBER, f"Auto trade complete at {gmtTime(timezone)}.\n{initial_balance = }, Profit = {float(numeric_value.text)}\nNew Balance = {initial_balance + float(numeric_value.text)}", 
+        wa_bot.send_message(MY_NUMBER, f"Auto trade initiated at {evenStatus_OddDate_list[1]}\n{initial_balance = } NGN\nStatus = {evenStatus_OddDate_list[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {gmtTime(timezone)}", 
             reply_markup=Inline_list("Show list",list_items=[List_item("Nice one 👌"), List_item("Thanks ✨"), List_item("Great Job")]))
-        
-
-    
+          
         input("Press the enter key: ")
 
     # signal: dict = getSignal()
