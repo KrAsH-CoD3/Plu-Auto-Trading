@@ -1,42 +1,37 @@
+from time import sleep
+import contextlib, pytz
 from datetime import datetime
 from selenium import webdriver
 from dotenv import load_dotenv
-from typing import Optional, Dict
-from time import sleep, perf_counter
 from os import environ as env_variable
-import contextlib, pyautogui, pytz, json
+from typing import Final, Optional, Dict
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from python_whatsapp_bot import Whatsapp, Inline_list, List_item
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 def main():
     
     load_dotenv()
 
-    MY_NUMBER: str = env_variable.get("MY_NUMBER")  # Your WhatsApp Number (234xxxxxxxxxx)
-    NUM_ID: str = env_variable.get("NUM_ID")  # Your Number ID
-    TOKEN: str =  env_variable.get("TOKEN")  # Token
-    USERNAME: str =  env_variable.get("USER")  # Plu Username (Phone number)
-    PASSWORD: str =  env_variable.get("PASSWORD")  # Plu Password
+    TOKEN: Final =  env_variable.get("TOKEN")  # Token
+    NUM_ID: Final = env_variable.get("NUM_ID")  # Your Number ID
+    USERNAME: Final =  env_variable.get("USER")  # Plu Username (Phone number)
+    PASSWORD: Final =  env_variable.get("PASSWORD")  # Plu Password
+    MY_NUMBER: Final = env_variable.get("MY_NUMBER")  # Your WhatsApp Number (234xxxxxxxxxx)
     
     plu_base_url: str = "https://pluapp.net/"
-    plu_login_page: str = plu_base_url + "index/index/login.html"
     plu_homepage: str =  plu_base_url + "index/index/index.html"
-    plu_contract_record: str = plu_base_url + "index/contract/record.html"
+    plu_login_page: str = plu_base_url + "index/index/login.html"
     telegram_url: str = 'https://web.telegram.org/a/#-1001640574914'
+    plu_contract_record: str = plu_base_url + "index/contract/record.html"
 
     timezone: str = "Africa/Lagos"  # Your timezone
-    sticky_date_xpath: str = '//div[@class="sticky-date interactive"]'
     driverpath: str = "assets\drivers\chromedriver.exe"
-    durationbtn_xpath: str = '//div[@id="time_1"]//span[text()="60 S"]'
-    selected_duration_xpath: str = '//div[@class="dong_order_option_list fontchangecolor fontchangecolor_1 bgf5465cim"]'
     msgs_xpath: str = '//div[@class="text-content clearfix with-meta"]'
     status_date_xpath: str = '//div[@id="list_box"]//div[@class="listbox_title_r"]//span[@class="fcc"]'
 
@@ -58,24 +53,32 @@ def main():
     options.add_argument('--disable-blink-features=AutomationControlled')
     bot = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(bot, 30)
-    wait5secs = WebDriverWait(bot, 5)
     wa_bot = Whatsapp(number_id=NUM_ID, token=TOKEN)
 
 
     def getSignal():
-        bot.get(telegram_url); sleep(5)
-        msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
-        with contextlib.suppress(Exception):
-            bot.find_element(By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]').click()  # Hidden scoll to bottom (ElementClickInterceptedException)
-        msg = msgs[-2].text  # Should be -1 at 8PM
-        signal: dict = {}
+        bot.get(telegram_url)
+        print("Logged into Telegram."); sleep(5)
+        count = 1
+        while True:
+            msgs = wait.until(EC.visibility_of_all_elements_located((By.XPATH, msgs_xpath)))
+            with contextlib.suppress(Exception):  # Scoll to bottom (in case hidden) (ElementClickInterceptedException)
+                bot.find_element(By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]').click()  
+            trade_msg = msgs[-1].text
 
-        signal_atrr: list  = ['coin', 'action']
-        counter: int = 0
-        for i in msg.split("\n"): 
-            if any(["Trading products:" in i, "Transaction instruction:" in i]):
-                signal[signal_atrr[counter]] = i.split("【")[-1].split("】")[0]
-                counter += 1
+            signal: dict = {}
+            signal_key: list  = ['coin', 'action']
+
+            counter = 0 
+            for i in trade_msg.split("\n"): 
+                if any(["Trading products:" in i, "Transaction instruction:" in i]):
+                    signal[signal_key[counter]] = i.split("【")[-1].split("】")[0]
+                    counter+=1
+
+            if len(signal) == 2: break
+            else:
+                print(f"{count}. Waiting for signal..."); count+=1
+                sleep(5) # Wait 5 secs and check again
         
         print("Signal Gotten! 👍", signal)
         return signal
@@ -91,79 +94,69 @@ def main():
             wait.until(EC.url_to_be(plu_homepage))
 
         assert bot.current_url in plu_homepage
-        print("Logged in successfully into PLU. 😁")
+        print("Logged in successfully into PLU. 😁\n", '-'*35, sep='')
 
         bot.get(coin_link)  # Goto Trading Page
 
         for idx in range(4):
             try:
-                wait5secs.until(EC.element_to_be_clickable((By.XPATH, actionbtn_xpath)))
+                WebDriverWait(bot, 5).until(EC.element_to_be_clickable((By.XPATH, actionbtn_xpath)))
                 break
             except TimeoutException: 
                 if idx >= 2: bot.get(coin_link)
 
         bot.find_element(By.XPATH, actionbtn_xpath).click()  # Click Action Button
+        
+        sleep(3) # 3 secs sleep to load auto duration selection and amount
 
-        # Amount and duration is auto inputted and selected 
-        try: 
-            # REMOVE FROM HERE  # TESTING PURPOSE
-            bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("10")  # Type amount/Your amount here
-            bot.find_element(By.XPATH, '//span[@id="balance"]').click()  # To update expected balance
-            # TO HERE
-            wait5secs.until(EC.element_to_be_clickable((By.XPATH, durationbtn_xpath)))
-            bot.find_element(By.XPATH, durationbtn_xpath).click()  # Click Duration Button
-            wait5secs.until(EC.visibility_of_element_located((By.XPATH, selected_duration_xpath)))
-            # bot.find_element(By.XPATH, '//input[@id="tzmoney"]').send_keys("10")  # Type amount/Your amount here
-        except: ... # 
-        finally: 
-            initial_balance: float = float(bot.find_element(By.XPATH, '//span[@id="balance"]').text)  # Initial balance
-            bot.find_element(By.XPATH, '//span[@id="balance"]').click()  # To update expected balance
-            bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
-            print("Trading...")
-            sleep(3)
-            for i in range(0, 75, 25): # 90 S Countdown with 30 S steps and WebDriverWait 
-                if i >= 25: 
-                  with contextlib.suppress(TimeoutException, ValueError):
-                        # trading_amount = float(bot.find_element(By.XPATH, '//div[@id="timer_buynum"]').text)
-                        # exp_profit = float(bot.find_element(By.XPATH, '//div[@id="expected_profits"]').text)
-                        # print(f'{initial_balance= } NGN\n{trading_amount= } NGN\n{exp_profit= } NGN')
-                        # Wait for "Check Results" to be visible on the screen after countdown
-                        wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="wait_box_info"]')))
-                        break
+        ''' Amount and duration are auto inputted and selected by PluApp
+         And cannot be editted (Amount and trade duration) '''
+        
+        initial_balance: float = float(bot.find_element(By.XPATH, '//span[@id="balance"]').text)  # Initial balance
+        bot.find_element(By.XPATH, '//span[text()="Confirm order"]').click()  # Click Confirm Order
+        print("Trading...")
+        sleep(3) # 3 secs sleep to start the countdown
+        
+        # Check and Wait for the text "Check Results" TWICE to be visible on the screen after countdown
+        for _ in range(2):
+            with contextlib.suppress(TimeoutException, ValueError):
+                trading_amount = float(bot.find_element(By.XPATH, '//div[@id="timer_buynum"]').text)
+                exp_profit = float(bot.find_element(By.XPATH, '//div[@id="expected_profits"]').text)
+                wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="wait_box_info"]')))
+                break
         
         while True:
             bot.get(plu_contract_record)
             numeric_vales = bot.find_elements(By.XPATH, '//span[@class=" f12 fce5"]')  # Numeric values
-            evenStatus_OddDate = bot.find_elements(By.XPATH, status_date_xpath)  # evenStatus_OddDate # First=Status, Second=Date
-            
-            initial_balance = 15144.26
+            evenStatus_OddDate: list = [i.text for i in bot.find_elements(By.XPATH, status_date_xpath)]
 
-            evenStatus_OddDate_list: list = [i.text for i in evenStatus_OddDate]
             with contextlib.suppress(AssertionError):
-                status: str = evenStatus_OddDate_list[0]
+                status: str = evenStatus_OddDate[0]
                 assert status == 'Settled'
                 break
+            sleep(5)
+
         for idx, numeric_value in enumerate(numeric_vales):
-            if idx == 3: # Settled
+            if idx == 3: # The text 'Settled' is index 3
                 profit: float = float(numeric_value.text)
                 loss: float = 0.0
                 break
+
         if '-' in str(profit): loss = str(profit).split('-')[1] 
-        print(f"Auto trade initiated at {evenStatus_OddDate_list[1]}\n{initial_balance = } NGN\nStatus = {evenStatus_OddDate_list[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {gmtTime(timezone)}")
+        trade_output: str = f"Auto trade initiated at {evenStatus_OddDate[1]}\nInitial balance = {initial_balance} NGN\nTrade amount = {trading_amount} NGN\nExpected profit = {exp_profit} NGN\n{'-'*30}\nStatus = {evenStatus_OddDate[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {''.join(gmtTime(timezone).split(' '))}"
+
+        print(trade_output)
         
-        # Send to Self //  # Add balance and profit 
-        wa_bot.send_message(MY_NUMBER, f"Auto trade initiated at {evenStatus_OddDate_list[1]}\n{initial_balance = } NGN\nStatus = {evenStatus_OddDate_list[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {gmtTime(timezone)}", 
+        # Send to Self
+        wa_bot.send_message(MY_NUMBER, trade_output, 
             reply_markup=Inline_list("Show list",list_items=[List_item("Nice one 👌"), List_item("Thanks ✨"), List_item("Great Job")]))
           
-        input("Press the enter key: ")
-
-    # signal: dict = getSignal()
-    signal: dict = {'coin': 'FIL', 'action': 'PUT'}
+    signal: dict = getSignal()
 
     coin: str = signal['coin'].lower()
     action: str = signal['action'].upper()
     actionbtn_xpath: str = f"//span[text()='{action}']"
-    coin_link: str = f'https://pluapp.net/index/trade/trans.html?sytx={coin}'
+    coin_link: str = f'{plu_base_url}index/trade/trans.html?sytx={coin}'
 
     trade()
 
