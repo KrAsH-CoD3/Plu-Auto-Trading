@@ -1,4 +1,5 @@
 .env
+.vscode
 assets
 plu_venv
 main.ipynb
