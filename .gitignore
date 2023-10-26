@@ -2,7 +2,6 @@
 .vscode
 assets
 plu_venv
-main.ipynb
 temp.json
 test.py
 main(debugging).py
