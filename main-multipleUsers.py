@@ -89,6 +89,7 @@ def main():
                 break
         
         print("Loading Messages...")
+        
         while True:
             with contextlib.suppress(TimeoutException):  # Channel Updating Status
                 telebot_wait.until(
@@ -97,6 +98,7 @@ def main():
                     )
                 )
                 break
+
         while True:
             with contextlib.suppress(TimeoutException):  # Channel Subscriber Number
                 telebot_wait.until(
@@ -104,6 +106,11 @@ def main():
                         (By.XPATH, '//span[@class="DotAnimation status"]')
                     )
                 )
+                break
+
+        while True:
+            with contextlib.suppress(NoSuchElementException):  ## Sticky Name
+                telebot.find_element(By.XPATH, '//div[@class="sticky-date interactive"]//span[text()="Today"]')
                 break
 
         count = 1
