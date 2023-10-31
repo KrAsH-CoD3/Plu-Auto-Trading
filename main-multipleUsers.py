@@ -79,13 +79,31 @@ def main():
 
         while True:  # Continous login if failed
             telebot.get(telegram_url)
-            with contextlib.suppress(Exception):  # Channel Subscriber number
+            with contextlib.suppress(TimeoutException):  # Channel Name
                 telebot_wait.until(
                     EC.visibility_of_element_located(
-                        (By.XPATH, '//span[@class="group-status"]')
+                        (By.XPATH, '//div[@class="title ysHMmXALnn0fgFRc7Bn7"]//h3[text()="PLU - Official Signal Channel⑦"]')
                     )
                 )
                 print("Logged into Telegram.")
+                break
+        
+        print("Loading Messages...")
+        while True:
+            with contextlib.suppress(TimeoutException):  # Channel Updating Status
+                telebot_wait.until(
+                    EC.visibility_of_element_located(
+                        (By.XPATH, '//span[@class="DotAnimation status"]')
+                    )
+                )
+                break
+        while True:
+            with contextlib.suppress(TimeoutException):  # Channel Subscriber Number
+                telebot_wait.until(
+                    EC.invisibility_of_element_located(
+                        (By.XPATH, '//span[@class="DotAnimation status"]')
+                    )
+                )
                 break
 
         count = 1
