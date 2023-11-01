@@ -97,7 +97,7 @@ def main():
                 break
             except NoSuchElementException:
                 if (perf_counter() - refresh_time) >= 15: 
-                    telebot.get('https://google.com')
+                    telebot.get('https://google.com/')
                     telebot.get(telegram_url)
                     refresh_time = perf_counter()
                     continue
