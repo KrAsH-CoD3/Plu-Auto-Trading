@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, perf_counter
 import contextlib, pytz
 from datetime import datetime
 from selenium import webdriver
@@ -90,28 +90,17 @@ def main():
         
         print("Loading Messages...")
         
+        refresh_time: float = perf_counter()
         while True:
-            with contextlib.suppress(TimeoutException):  # Channel Updating Status
-                telebot_wait.until(
-                    EC.visibility_of_element_located(
-                        (By.XPATH, '//span[@class="DotAnimation status"]')
-                    )
-                )
-                break
-
-        while True:
-            with contextlib.suppress(TimeoutException):  # Channel Subscriber Number
-                telebot_wait.until(
-                    EC.invisibility_of_element_located(
-                        (By.XPATH, '//span[@class="DotAnimation status"]')
-                    )
-                )
-                break
-
-        while True:
-            with contextlib.suppress(NoSuchElementException):  ## Sticky Name
+            try:  ## Sticky Date
                 telebot.find_element(By.XPATH, '//div[@class="sticky-date interactive"]//span[text()="Today"]')
                 break
+            except NoSuchElementException:
+                if (perf_counter() - refresh_time) >= 15: 
+                    telebot.get('https://google.com')
+                    telebot.get(telegram_url)
+                    refresh_time = perf_counter()
+                    continue
 
         count = 1
         while True:
