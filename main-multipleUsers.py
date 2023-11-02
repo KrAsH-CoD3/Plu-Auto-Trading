@@ -270,18 +270,17 @@ def main():
     MAMA_USER: Final = env_variable.get("MAMA_USER")
     MAMA_PASSWORD: Final = env_variable.get("MAMA_PASSWORD")
 
-    with ThreadPoolExecutor("Trading Thread", max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="Trading Thread") as executor:
         eni = executor.submit(trade, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis).result()
         samm = executor.submit(trade, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis).result()
         emmy = executor.submit(trade, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis).result()
         mama = executor.submit(trade, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400).result()
 
-    results: str = ""
-    for idx, user_result in enumerate([eni, samm, emmy, mama]):
-        results = results + user_result + '\n\n' if idx < 3 else results + user_result
+    for user_result in [eni, samm, emmy, mama]:
+        # Send to Self
+        wa_bot.send_message(MY_NUMBER, user_result)
+        sleep(1)
 
-    # Send to Self
-    wa_bot.send_message(MY_NUMBER, results)
 
 if __name__ == "__main__":
     main()
