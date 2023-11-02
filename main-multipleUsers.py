@@ -249,21 +249,7 @@ def main():
         trade_output: str = f"{NAME}'S TRADE OUTCOME\n\nAuto trade initiated at {evenStatus_OddDate[1]}\nInitial balance = {initial_balance} NGN\nTrade amount = {trading_amount} NGN\nExpected profit = {exp_profit} NGN\n{'-'*30}\nStatus = {evenStatus_OddDate[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {''.join(gmtTime(timezone).split(' '))}"
 
         print(trade_output)
-
-        # Send to Self
-        wa_bot.send_message(
-            MY_NUMBER,
-            trade_output,
-            reply_markup=Inline_list(
-                "Show list",
-                list_items=[
-                    List_item("Nice one 👌"),
-                    List_item("Thanks ✨"),
-                    List_item("Great Job"),
-                ],
-            ),
-        )
-        return "DONE."
+        return trade_output
 
     signal: dict = getSignal()
     print(f"WELCOME TO THE PLUTOMANIA WAYS 🎉\n{signal}\n")
@@ -274,6 +260,7 @@ def main():
     actionbtn_xpath: str = f"//span[text()='{action}']"
     coin_link: str = f"{plu_base_url}index/trade/trans.html?sytx={coin}"
 
+    max_workers: int = 4
     SAMM_USER: Final = env_variable.get("SAMM_USER")
     SAMM_PASSWORD: Final = env_variable.get("SAMM_PASSWORD")
     ENI_USER: Final = env_variable.get("ENI_USER")
@@ -283,12 +270,18 @@ def main():
     MAMA_USER: Final = env_variable.get("MAMA_USER")
     MAMA_PASSWORD: Final = env_variable.get("MAMA_PASSWORD")
 
-    with ThreadPoolExecutor(4, "Trading Thread") as executor:
-        executor.submit(trade, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis)
-        executor.submit(trade, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis)
-        executor.submit(trade, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis)
-        executor.submit(trade, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400)
+    with ThreadPoolExecutor("Trading Thread", max_workers=max_workers) as executor:
+        eni = executor.submit(trade, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis).result()
+        samm = executor.submit(trade, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis).result()
+        emmy = executor.submit(trade, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis).result()
+        mama = executor.submit(trade, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400).result()
 
+    results: str = ""
+    for idx, user_result in enumerate([eni, samm, emmy, mama]):
+        results = results + user_result + '\n\n' if idx < 3 else results + user_result
+
+    # Send to Self
+    wa_bot.send_message(MY_NUMBER, results)
 
 if __name__ == "__main__":
     main()
