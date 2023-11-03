@@ -93,6 +93,11 @@ def main():
         refresh_time: float = perf_counter()
         while True:
             try:  ## Sticky Date
+                with contextlib.suppress(Exception):  # Scoll to bottom (in case hidden) (ElementClickInterceptedException)
+                    telebot.find_element(
+                        By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]'
+                    ).click()
+                    sleep(3)
                 telebot.find_element(By.XPATH, '//div[@class="sticky-date interactive"]//span[text()="Today"]')
                 break
             except NoSuchElementException:
