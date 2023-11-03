@@ -63,7 +63,7 @@ def main():
             except NoSuchElementException:
                 break
 
-    def getSignal():
+    def getSignal(msg_no):
 
         service = Service(executable_path=driverpath)
         telebot_opts = Options()
@@ -118,7 +118,7 @@ def main():
                 telebot.find_element(
                     By.XPATH, '//i[@class="AafG9_xBi_2eJ_bFNnNg icon icon-arrow-down"]'
                 ).click()
-            trade_msg = msgs[-1].text
+            trade_msg = msgs[msg_no].text
 
             signal: dict = {}
             signal_key: list = ["coin", "action"]
@@ -258,8 +258,11 @@ def main():
         wa_bot.send_message(MY_NUMBER, trade_output)
         return trade_output
 
-    signal: dict = getSignal()
+    msg_no = -1
+    signal: dict = getSignal(msg_no)
     print(f"WELCOME TO THE PLUTOMANIA WAYS 🎉\n{signal}\n")
+    wa_bot.send_message(MY_NUMBER, 
+                        f"Started Auto Trade at {str(datetime.today())[:-7]}\nWELCOME TO THE PLUTOMANIA WAYS 🎉")
 
     yAxis = 60
     coin: str = signal["coin"].lower()
