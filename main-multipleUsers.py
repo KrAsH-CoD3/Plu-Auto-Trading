@@ -249,6 +249,8 @@ def main():
         trade_output: str = f"{NAME}'S TRADE OUTCOME\n\nAuto trade initiated at {evenStatus_OddDate[1]}\nInitial balance = {initial_balance} NGN\nTrade amount = {trading_amount} NGN\nExpected profit = {exp_profit} NGN\n{'-'*30}\nStatus = {evenStatus_OddDate[0]}, {'Loss' if '-' in str(profit) else 'Profit'} = {loss if '-' in str(profit) else profit} NGN\nNew Balance = {initial_balance + profit} NGN\nAuto trade completed at {''.join(gmtTime(timezone).split(' '))}"
 
         print(trade_output)
+        # Send to Self
+        wa_bot.send_message(MY_NUMBER, trade_output)
         return trade_output
 
     signal: dict = getSignal()
@@ -275,11 +277,6 @@ def main():
         samm = executor.submit(trade, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis).result()
         emmy = executor.submit(trade, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis).result()
         mama = executor.submit(trade, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400).result()
-
-    for user_result in [eni, samm, emmy, mama]:
-        # Send to Self
-        wa_bot.send_message(MY_NUMBER, user_result)
-        sleep(1)
 
 
 if __name__ == "__main__":
