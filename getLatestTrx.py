@@ -111,7 +111,7 @@ def main():
                 loss = str(last_trade_result).split("-")[1]
             latest_trx: str = f"{NAME.capitalize()} Latest Trade Info\n\nTraded at {last_trdamt_datetime}\nTrade Amount = {last_trade_amount} NGN\n{'Loss' if '-' in str(last_trade_result) else 'Profit'} = {loss if '-' in str(last_trade_result) else last_trade_result} NGN\nBalance = {balance}"
             print(f"{'-'*35}\n{latest_trx}")
-            # wa_bot.send_message(MY_NUMBER, latest_trx)
+            wa_bot.send_message(MY_NUMBER, latest_trx)
             plubot.quit()
             return latest_trx
         else:

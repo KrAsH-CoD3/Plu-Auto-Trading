@@ -258,7 +258,7 @@ def main():
         wa_bot.send_message(MY_NUMBER, trade_output)
         return trade_output
 
-    msg_no = -1
+    msg_no = -1  # LAST MESSAGE ON THE CHANNEL
     signal: dict = getSignal(msg_no)
     print(f"WELCOME TO THE PLUTOMANIA WAYS 🎉\n{signal}\n")
     wa_bot.send_message(MY_NUMBER, 
