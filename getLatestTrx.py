@@ -56,7 +56,7 @@ def main():
 
     def get_latest_trx(NAME, USERNAME, PASSWORD, xAxis, yAxis):
         plubot_opts_args: list = [
-            '--headless',
+            # '--headless',
             "--incognito",
             rf"--profile-directory={NAME.capitalize()} Plu Profile",
             rf"user-data-dir=C:\{NAME.capitalize()} PluBot Chrome Profile",
@@ -130,7 +130,7 @@ def main():
     MAMA_USER: Final = env_variable.get("MAMA_USER")
     MAMA_PASSWORD: Final = env_variable.get("MAMA_PASSWORD")
 
-    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="Trading Thread") as executor:
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="LatestTrx Thread") as executor:
         executor.submit(get_latest_trx, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis)
         executor.submit(get_latest_trx, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis)
         executor.submit(get_latest_trx, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis)
