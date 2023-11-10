@@ -30,6 +30,7 @@ def main():
     driverpath: str = r"assets\drivers\chromedriver.exe"
     plu_homepage: str = plu_base_url + "index/index/index.html"
     plu_wallet_page: str = plu_base_url + "index/user/wallets.html"
+    plu_withdraw_page: str = plu_base_url + "index/user/withdraw.html"
     wa_bot = Whatsapp(number_id=NUM_ID, token=TOKEN)
 
     def gotoPage(goto_link, plubot, NAME):
@@ -54,7 +55,10 @@ def main():
             except NoSuchElementException:
                 break
 
-    def get_latest_trx(NAME, USERNAME, PASSWORD, xAxis, yAxis):
+    def withdraw(NAME, USERNAME, PASSWORD, xAxis, yAxis):
+
+        print(f"{NAME.capitalize()}'s Plutomaia Withdrawal.")
+        
         plubot_opts_args: list = [
             # '--headless',
             "--incognito",
@@ -76,7 +80,6 @@ def main():
         plubot.set_window_rect(xAxis, yAxis)
         pluwait = WebDriverWait(plubot, 30)
 
-        print(f"Get Plutomania Balance for {NAME.capitalize()}.")
         plubot.get(plu_wallet_page)
 
         if plubot.current_url not in plu_homepage:
@@ -86,7 +89,7 @@ def main():
             pluwait.until(EC.url_to_be(plu_homepage))
 
         assert plubot.current_url in plu_homepage
-        print(f"Plutomania welcomes {NAME.capitalize()}. 😁\n", "-" * 35, sep="")
+        print(f"Plutomania welcomes {NAME.capitalize()}. 😁")
 
         gotoPage(plu_wallet_page, plubot, NAME)
 
@@ -95,32 +98,52 @@ def main():
         ).text  # Balance
         total_deposit = plubot.find_element(
             By.XPATH, '//span[@id="zhmoney"]'
-        ).text  # Total deposit
-        
+        ).text  # Total deposit        
         plubot.find_element(
             By.XPATH, '//div[@class="btnbox_b btnbg_a"]'
-        ).click()  # Withdraw Button
+        ).click()  # Navigate to withdrawal page
 
-        witdrawable_amt:float = (float(balance) - float(total_deposit)) / 1.2
+        sleep(3)
+
+        witdrawable_amt: float = (float(balance) - float(total_deposit)) / 1.2
         rounded_wth_amt: int = int(round(witdrawable_amt, -3))
-        print(NAME, witdrawable_amt, rounded_wth_amt)
-        
+
         plubot.find_element(
             By.XPATH, '//input[@id="tbnum"]'
         ).send_keys(rounded_wth_amt)  # Input Amount
-        # ).send_keys(witdrawable_amt)  # Input Amount
-        plubot.find_element(
-            By.XPATH, '//div[@id="sumbtn"]'
-        ).click()  # Submit Button 
+        # plubot.find_element(
+        #     By.XPATH, '//div[@id="sumbtn"]'
+        # ).click()  # Submit Button 
         
-        # wa_bot.send_message(MY_NUMBER, f'No Trade Found for {NAME.capitalize()}.')
-        sleep(30)
-        # print()
+        gotoPage(plu_wallet_page, plubot, NAME)
+
+        trx_name = plubot.find_elements(
+            By.XPATH, '//span[@class="fe6im fzmm"]'
+        )[2].text  # Transaction name
+        new_balance = plubot.find_element(
+            By.XPATH, '//span[@id="kymoney"]'
+        ).text  # Balance
+        trx_datetime = plubot.find_element(
+            By.XPATH, '//span[@class="fe6im  f12  fzmm"]'
+        ).text  # Transaction date and time
+        trx_amt = plubot.find_element(
+            By.XPATH, '//span[@class="fe6im f12 fzmmm"]'
+        ).text  # Transaction amount
+
+        # Convert string to datetime object
+        datetime_object = datetime.datetime.strptime(trx_datetime, "%Y-%m-%d %H:%M:%S")
+
+        # Format datetime in 12-hour clock format
+        formatted_time = datetime_object.strftime("%Y-%m-%d %I:%M:%S %p")
+
+        if 'Withdraw' in trx_name:
+            latest_trx: str = f"{NAME.capitalize()} Successfully Made Withdrawal\nAt {formatted_time}\n\nWithdraw amount = {trx_amt[1:]}\nNew balance = {new_balance}"
+            print(f"{'-'*35}\n{latest_trx}")
+            wa_bot.send_message(MY_NUMBER, latest_trx)
+            plubot.quit()
+            return latest_trx
+        else: print(f"{NAME.capitalize()} Withdrawal Failed.\n Calculated withdraw amount = {rounded_wth_amt}") 
         
-        # Emmy = 23249.87   # 23000
-        # Eni = 29089.4     # 29000
-        # Samm = 81755.97   # 81000
-        # Mama = 41442.81   # 41000
 
     yAxis = 60
     max_workers: int = 1
@@ -131,15 +154,16 @@ def main():
     EMMY_USER: Final = env_variable.get("EMMY_USER")
     EMMY_PASSWORD: Final = env_variable.get("EMMY_PASSWORD")
     MAMA_USER: Final = env_variable.get("MAMA_USER")
+    MAMA2_USER: Final = env_variable.get("MAMA2_USER")
     MAMA_PASSWORD: Final = env_variable.get("MAMA_PASSWORD")
 
-    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="LatestTrx Thread") as executor:
-        # executor.submit(get_latest_trx, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis)
-        executor.submit(get_latest_trx, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis)
-        # executor.submit(get_latest_trx, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis)
-        # executor.submit(get_latest_trx, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400)
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="Withdraw Thread") as executor:
+        # executor.submit(withdraw, "ENI", ENI_USER, ENI_PASSWORD, 0, yAxis)
+        # executor.submit(withdraw, "SAMM", SAMM_USER, SAMM_PASSWORD, 500, yAxis)
+        executor.submit(withdraw, "EMMY", EMMY_USER, EMMY_PASSWORD, 1000, yAxis)
+        # executor.submit(withdraw, "MAMA", MAMA_USER, MAMA_PASSWORD, 0, 400)
 
 
 if __name__ == "__main__":
     main()
-    # print()
+

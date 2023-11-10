@@ -1,16 +1,15 @@
 import datetime
+from typing import Final
 from selenium import webdriver
 from dotenv import load_dotenv
-# from time import sleep, perf_counter
 from os import environ as env_variable
-from typing import Final
+from python_whatsapp_bot import Whatsapp
 from selenium.webdriver.common.by import By
 from concurrent.futures import ThreadPoolExecutor
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from python_whatsapp_bot import Whatsapp
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 
@@ -56,7 +55,7 @@ def main():
 
     def get_latest_trx(NAME, USERNAME, PASSWORD, xAxis, yAxis):
         plubot_opts_args: list = [
-            # '--headless',
+            '--headless',
             "--incognito",
             rf"--profile-directory={NAME.capitalize()} Plu Profile",
             rf"user-data-dir=C:\{NAME.capitalize()} PluBot Chrome Profile",
